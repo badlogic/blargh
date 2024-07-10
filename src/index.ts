@@ -122,14 +122,19 @@ function transform(state: State, context: Context) {
     const outputParentDir = path.resolve(outputPath, "..");
     try {
         const program = compile(content, state.config);
-        if (state.debug) fs.writeFileSync(outputPath + ".js", program);
+        if (state.debug) {
+            if (!fs.existsSync(outputParentDir)) {
+                fs.mkdirSync(outputParentDir);
+            }
+            fs.writeFileSync(outputPath + ".debug.js", program);
+        }
 
         context.readJson = (filePath: string) => {
             filePath = path.resolve(inputParentDir, filePath);
             return JSON.parse(fs.readFileSync(filePath, "utf-8"));
         };
 
-        context.include = (filePath: string) => {
+        context.include = (filePath: string, data: any) => {
             const includeInputPath = path.resolve(inputParentDir, filePath);
             const includeOutputPath = path.resolve(outputParentDir, filePath);
             const includeContext = {
@@ -139,6 +144,7 @@ function transform(state: State, context: Context) {
                     content: fs.readFileSync(includeInputPath, "utf-8"),
                     outputPath: includeOutputPath,
                 },
+                ...(data ?? {})
             };
             return transform(state, includeContext);
         };
