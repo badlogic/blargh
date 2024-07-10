@@ -1,0 +1,21 @@
+{
+  "name": "@marioslab/blargh",
+  "version": "0.0.2",
+  "main": "dist/index.js",
+  "bin": {
+    "blargh": "dist/index.js"
+  },
+  "scripts": {
+    "start": "tsc && node dist/index.js",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm version patch && tsc",
+    "publish": "npm publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "typescript": "5.5.3"
+  },
+  "dependencies": {
+    "marked": "^13.0.2"
+  }
+}
