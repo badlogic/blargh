@@ -1,6 +1,6 @@
 {
   "name": "@marioslab/blargh",
-  "version": "0.0.7",
+  "version": "0.0.1",
   "main": "dist/index.js",
   "bin": {
     "blargh": "dist/index.js"
@@ -8,7 +8,7 @@
   "scripts": {
     "start": "tsc && node dist/index.js",
     "dev": "tsc --watch",
-    "prepublishOnly": "npm version patch && tsc"
+    "prepublishOnly": "npm version patch && tsc && echo '#!/usr/bin/env node' | cat - dist/index.js > temp && mv temp dist/index.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
