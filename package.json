@@ -8,8 +8,7 @@
   "scripts": {
     "start": "tsc && node dist/index.js",
     "dev": "tsc --watch",
-    "prepublishOnly": "npm version patch && tsc",
-    "publish": "npm publish"
+    "prepublishOnly": "npm version patch && tsc"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
