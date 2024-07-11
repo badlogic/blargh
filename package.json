@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "tsc --watch",
-    "prepublishOnly": "npm version patch && tsc && echo '' | cat - dist/main.js > temp && mv temp dist/main.js && chmod +x dist/main.js"
+    "prepublishOnly": "npm version patch && tsc && echo '#!/usr/bin/env node' | cat - dist/main.js > temp && mv temp dist/main.js && chmod +x dist/main.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
