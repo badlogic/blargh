@@ -26,11 +26,15 @@ float Q_rsqrt(float number)
 
   x2 = number * 0.5F;
   y  = number;
-  i  = * ( long * ) &y;                       // evil floating point bit level hacking
-  i  = 0x5f3759df - ( i >> 1 );               // what the fuck?
+  // evil floating point bit level hacking
+  i  = * ( long * ) &y;
+  // what the fuck?
+  i  = 0x5f3759df - ( i >> 1 );
   y  = * ( float * ) &i;
-  y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
-  // y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+  // 1st iteration
+  y  = y * ( threehalfs - ( x2 * y * y ) );
+  // 2nd iteration, this can be removed
+  // y  = y * ( threehalfs - ( x2 * y * y ) );
 
   return y;
 }

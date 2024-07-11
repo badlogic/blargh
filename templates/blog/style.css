@@ -92,7 +92,9 @@ header {
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--border-color);
     display: flex;
+    gap: 0.5rem;
     align-items: center;
+    flex-flow: wrap;
 }
 
 header > a {
@@ -122,14 +124,23 @@ article {
     gap: 1em;
 }
 
-.post-title > h1 {
-    margin: 0;
-}
-
-.post-title > div {
+.post-list-title > div {
     font-size: 0.75em;
     color: var(--dimmed-text-color);
 }
 
+.post-title > h1 {
+    margin: 0;
+}
+
+.post-title > div, .post-list-title > div {
+    font-size: 0.75em;
+    color: var(--dimmed-text-color);
+}
+
+pre > code {
+    border-radius: 0.5em;
+}
+
 /* Highlight.js theme */
-<%= include("_hljs-dark.min.css")%>
+<%= include("./_css/atom-one-dark-reasonable.min.css")%>

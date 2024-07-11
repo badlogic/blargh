@@ -2,7 +2,23 @@
 <%= include("./_partials/header.html") %>
 
 <%
+// Gather all the post metas and sort them by date
 const postMetas = metas("posts").sort((a, b) => b.data.date.localeCompare(a.data.date));
+
+// Generate an rss.xml file next to the index.html file.
+const channel = {
+    title,
+    description,
+    url
+};
+const items = postMetas.map((p) => { return {
+    title: p.data.postTitle,
+    description: p.data.teaser,
+    url: url + "/posts/" + p.directory,
+    pubdate: p.data.date
+}})
+rss("rss.xml", channel, items);
+
 %>
 
 <div class="post-list">

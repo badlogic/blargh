@@ -3,21 +3,19 @@
   "version": "0.0.9",
   "main": "dist/index.js",
   "bin": {
-    "blargh": "dist/index.js"
+    "blargh": "dist/main.js"
   },
   "scripts": {
-    "start": "tsc && node dist/index.js",
     "dev": "tsc --watch",
-    "prepublishOnly": "npm version patch && tsc && echo '#!/usr/bin/env node' | cat - dist/index.js > temp && mv temp dist/index.js"
+    "prepublishOnly": "npm version patch && tsc && echo '' | cat - dist/main.js > temp && mv temp dist/main.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
-    "typescript": "5.5.3"
-  },
-  "dependencies": {
+    "typescript": "5.5.3",
     "highlight.js": "^11.10.0",
     "marked": "^13.0.2",
-    "marked-highlight": "^2.1.3"
+    "marked-highlight": "^2.1.3",
+    "xml2js": "^0.6.2"
   },
   "publishConfig": {
     "access": "public"
