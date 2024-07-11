@@ -11,7 +11,9 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
-    "typescript": "5.5.3",
+    "typescript": "5.5.3"
+  },
+  "dependencies": {
     "highlight.js": "^11.10.0",
     "marked": "^13.0.2",
     "marked-highlight": "^2.1.3",
