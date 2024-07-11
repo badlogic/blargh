@@ -3,13 +3,24 @@ import path from 'path';
 import fs from 'fs';
 import { WebSocket, WebSocketServer } from "ws";
 
+const injected = (port: number) => `
+<script>
+function liveReload() {
+    if (!location.host.includes("localhost") && !location.host.includes("127.0.0.1")) return;
+    var socket = new WebSocket("ws://" + location.hostname + ":${port}");
+    socket.onmessage = (ev) => {
+        location.reload();
+    };
+}
+liveReload();
+</script></body>`.trim();
+
 export function serve(directory: string, port: number = 8080): void {
     const app = express();
 
     app.use((req, res, next) => {
         let filePath = path.join(directory, req.path);
 
-        // If the request is to a directory, serve the index.html file in that directory
         if (fs.statSync(filePath).isDirectory()) {
             filePath = path.join(filePath, 'index.html');
         }
@@ -20,18 +31,7 @@ export function serve(directory: string, port: number = 8080): void {
                     next(err);
                     return;
                 }
-                const injected = `<script>
-                function liveReload() {
-                    if (!location.host.includes("localhost") && !location.host.includes("127.0.0.1")) return;
-                    var socket = new WebSocket("ws://" + location.hostname + ":${port}");
-                    socket.onmessage = (ev) => {
-                        location.reload();
-                    };
-                }
-                liveReload();
-                </script></body>`;
-                const injectedData = data.replace('</body>', '<script src="/injected.js"></script></body>');
-                res.send(data.replace('</body>', injected));
+                res.send(data.replace('</body>', injected(port)));
             });
         } else {
             next();
