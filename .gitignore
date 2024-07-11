@@ -4,3 +4,4 @@ out
 site
 tests
 tests-out
+.DS_Store
