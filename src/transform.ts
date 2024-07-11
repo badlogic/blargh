@@ -6,6 +6,7 @@ import * as path from "path";
 import { Config } from "./config";
 import { Context } from "./context";
 import { compile, interpret } from "./interpreter";
+import { serve } from "./server";
 
 // Global Marked object with highlight.js support.
 const marked = new Marked(
@@ -140,7 +141,8 @@ function processFiles(config: Config, callback?: (config: Config, context: Conte
 }
 
 /** Transforms and copies files in {@link Config.inputPath} to {@link Config.outputPath}. The output directory is deleted
- * before processing starts. See {@link Config} for details. */
+ * before processing starts. Optionally watches the input directory for changes, and serves the output directory.
+ * See {@link Config} for details. */
 export function blargh(config: Config) {
     config.inputPath = path.resolve(config.inputPath);
     config.outputPath = path.resolve(config.outputPath);
@@ -163,5 +165,9 @@ export function blargh(config: Config) {
                 console.log();
             } catch (e) {}
         });
+    }
+
+    if (config.serve) {
+        serve(config.outputPath, config.servePort);
     }
 }

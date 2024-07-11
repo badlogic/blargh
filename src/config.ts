@@ -9,6 +9,10 @@ export interface Config {
     outputPath: string;
     /** Whether to watch the input directory for changes */
     watch: boolean;
+    /** Whether to serve the output directory on http://localhost:<servePort> */
+    serve: boolean;
+    /** Port to serve the output directory on */
+    servePort: number;
     /** Whether to output `debug.js` files containing the template evaluation script next to the output file. */
     debug: boolean;
     /** Opening tag for expressions, defaults to `<%` */

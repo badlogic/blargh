@@ -3,7 +3,7 @@
 
 <%
 // Gather all the post metas and sort them by date
-const postMetas = metas("posts").sort((a, b) => b.data.date.localeCompare(a.data.date));
+const postMetas = metas("posts").sort((a, b) => b.meta.date.localeCompare(a.meta.date));
 
 // Generate an rss.xml file next to the index.html file.
 const channel = {
@@ -12,20 +12,19 @@ const channel = {
     url
 };
 const items = postMetas.map((p) => { return {
-    title: p.data.postTitle,
-    description: p.data.teaser,
+    title: p.meta.postTitle,
+    description: p.meta.teaser,
     url: url + "/posts/" + p.directory,
-    pubdate: p.data.date
+    pubdate: p.meta.date
 }})
 rss("rss.xml", channel, items);
-
 %>
 
 <div class="post-list">
 <% for (const post of postMetas) { %>
     <div class="post-title">
-        <h1><a href="/posts/<%=post.directory%>/"><%=post.data.postTitle%></a></h1>
-        <div><%=post.data.date%></div>
+        <h1><a href="/posts/<%=post.directory%>/"><%=post.meta.postTitle%></a></h1>
+        <div><%=post.meta.date%></div>
     </div>
 <% } %>
 </div>

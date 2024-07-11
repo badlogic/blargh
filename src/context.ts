@@ -33,7 +33,7 @@ export type ContextExtender = (config: Config, context: Context) => void;
  * * `require(id: string) => any`: pass through to Node.js' `require()`. Allows you to load any module in your template.
  * * `meta(filePath: string) => void`: reads the given JSON file and merges its content with the current context. If omitted, `filePath` defaults to
  *   `./meta.json`.
- * * `metas(filePath: string) => { directory: string, data: any }[]`: reads all `meta.json` files in the subdirectories of the given `filePath`.
+ * * `metas(directory: string) => { directory: string, data: any }[]`: recursively finds all `meta.json` files in the subdirectories of the given `directory`.
  * * `rss(filePath: string, channel: {title: string, description: string, link: string}, items: {title: string, description: string, link: string, pubdate: string}[])`:
  *    writes RSS XML based on the channel and items to the file path.
  */
@@ -90,18 +90,29 @@ export const DefaultContextExtender: ContextExtender = (config: Config, context:
 
     context.metas = (filePath: string = "") => {
         filePath = path.resolve(inputParentDir, filePath);
-        const files = fs.readdirSync(filePath);
-        const metas: any[] = [];
-        for (const file of files) {
-            const metaPath = path.resolve(filePath, file, "meta.json");
-            if (fs.existsSync(metaPath)) {
-                metas.push({
-                    directory: file,
-                    data: JSON.parse(fs.readFileSync(metaPath, "utf-8")),
-                });
+
+        const findMetas = (dir: string): any[] => {
+            let metas: any[] = [];
+            const files = fs.readdirSync(dir);
+
+            for (const file of files) {
+                const fullPath = path.resolve(dir, file);
+                const metaPath = path.resolve(fullPath, "meta.json");
+
+                if (fs.existsSync(metaPath)) {
+                    metas.push({
+                        directory: path.relative(filePath, fullPath),
+                        meta: JSON.parse(fs.readFileSync(metaPath, "utf-8")),
+                    });
+                } else if (fs.lstatSync(fullPath).isDirectory()) {
+                    metas = metas.concat(findMetas(fullPath));
+                }
             }
-        }
-        return metas;
+
+            return metas;
+        };
+
+        return findMetas(filePath);
     };
 
     context.rss = (filePath: string, channel: RssChannel, items: RssItem[]) => {
