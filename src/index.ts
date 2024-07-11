@@ -1,30 +1,158 @@
 import * as path from "path";
 import * as fs from "fs";
-import { marked } from "marked";
+import { Marked } from "marked";
+import { markedHighlight } from "marked-highlight";
+import hljs from "highlight.js";
 
+const marked = new Marked(
+    markedHighlight({
+        langPrefix: "hljs language-",
+        highlight(code, lang, info) {
+            const language = hljs.getLanguage(lang) ? lang : "plaintext";
+            return hljs.highlight(code, { language }).value;
+        },
+    })
+);
+
+/** Adds additional properties, like utility functions, to the context object. You can add
+ * additional extenders via {@link Config.contextExtenders}. */
+export type ContextExtender = (config: Config, context: Context) => void;
+
+/**
+ * Default utility functions added to every context object.
+ *
+ * * `readDir(filePath: string) => { file: string, isDirectory: boolean }[]`: returns a list of files in the given directory
+ * * `fileExists(filePath: string) => boolean`: returns true if the file exists, false otherwise
+ * * `include(filePath: string, context?: any) => string`: reads the given file, transforms it via the {@link Transformer}s in {@link Config.transformers},
+ *    and returns the resulting output string. The optional `context` will be merged with the context from the file in which `include()` was called.
+ * * `require(id: string) => any`: pass through to Node.js' `require()`. Allows you to load any module in your template.
+ * * `meta(filePath: string) => void`: reads the given JSON file and merges its content with the current context. If omitted, `filePath` defaults to
+ *   `./meta.json`.
+ * * `metas(filePath: string) => { directory: string, data: any }[]`: reads all `meta.json` files in the subdirectories of the given `filePath`.
+ */
+export const DefaultContextExtender: ContextExtender = (config: Config, context: Context) => {
+    const inputParentDir = path.resolve(context.inputPath, "..");
+    const outputParentDir = path.resolve(context.outputPath, "..");
+    context.readFile = (filePath: string) => {
+        filePath = path.resolve(inputParentDir, filePath);
+        return fs.readFileSync(filePath, "utf-8");
+    };
+
+    context.readDir = (filePath: string) => {
+        filePath = path.resolve(inputParentDir, filePath);
+        const files = fs.readdirSync(filePath);
+        return files.map((f) => {
+            const fullPath = path.resolve(filePath, f);
+            return {
+                file: f,
+                isDirectory: fs.statSync(fullPath).isDirectory(),
+            };
+        });
+    };
+
+    context.fileExists = (filePath: string) => {
+        filePath = path.resolve(inputParentDir, filePath);
+        return fs.existsSync(filePath);
+    };
+
+    context.include = (filePath: string, context: any) => {
+        const includeInputPath = path.resolve(inputParentDir, filePath);
+        const includeOutputPath = path.resolve(outputParentDir, filePath);
+        const includeContext = {
+            ...context,
+            ...{
+                inputPath: includeInputPath,
+                content: fs.readFileSync(includeInputPath, "utf-8"),
+                outputPath: includeOutputPath,
+            },
+            ...(context ?? {}),
+        };
+        return transform(config, includeContext);
+    };
+
+    context.require = (id: string) => {
+        return require(id);
+    };
+
+    context.meta = (filePath: string = "meta.json") => {
+        const metaFile = path.resolve(inputParentDir, filePath);
+        const meta = JSON.parse(fs.readFileSync(metaFile, "utf-8"));
+        Object.assign(context, meta);
+    };
+
+    context.metas = (filePath: string = "") => {
+        filePath = path.resolve(inputParentDir, filePath);
+        const files = fs.readdirSync(filePath);
+        const metas: any[] = [];
+        for (const file of files) {
+            const metaPath = path.resolve(filePath, file, "meta.json");
+            if (fs.existsSync(metaPath)) {
+                metas.push({
+                    directory: file,
+                    data: JSON.parse(fs.readFileSync(metaPath, "utf-8")),
+                });
+            }
+        }
+        return metas;
+    };
+};
+
+/** Transforms the given content and returns the transformed result. You can add transformers via {@link Config.transformers}. */
+export type Transformer = (config: Config, context: Context, content: string) => string;
+
+/** Markdown transformer which also applies highlight.js to code sections. */
+export const MarkdownTransformer: Transformer = (config: Config, context: Context, output: string) => {
+    if (context.inputPath.endsWith(".md")) {
+        output = marked.parse(output) as string;
+        context.outputPath = context.outputPath.substring(0, context.outputPath.length - 3) + ".html";
+    }
+    return output;
+};
+
+/** Configuration to be passed to {@link blargh()}*/
 export interface Config {
-    textFileExtensions: string[];
+    /** Input path to process recursively */
+    inputPath: string;
+    /** Output path. All contents will be deleted before  */
+    outputPath: string;
+    /** Whether to watch the input directory for changes */
+    watch: boolean;
+    /** Whether to output `debug.js` files containing the template evaluation script next to the output file. */
+    debug: boolean;
+    /** Opening tag for expressions, defaults to `<%` */
     openTag: string;
+    /** Closing tag for expressions, defaults to `%>` */
     closeTag: string;
+    /** File extensions to be transformed. Files matching an extension are assumed to be UTF-8 encoded text files. */
+    transformedExtensions: string[];
+    /** List of {@link Transformer}s to be applied in sequence to all transformed files. */
+    transformers: Transformer[];
+    /** List or {@link ContextExtender}s to be applied to the {@link Context} before templates expressions are evaluated. */
+    contextExtenders: ContextExtender[];
 }
 
 const defaultConfig: Config = {
-    textFileExtensions: [".txt", ".html", ".css", ".js", ".json", ".md"],
+    inputPath: "",
+    outputPath: "",
+    watch: false,
+    debug: false,
     openTag: "<%",
     closeTag: "%>",
+    transformedExtensions: [".txt", ".html", ".css", ".js", ".json", ".md"],
+    transformers: [MarkdownTransformer],
+    contextExtenders: [DefaultContextExtender],
 };
 
-export interface State {
-    inputPath: string;
-    outputPath: string;
-    watch: boolean;
-    debug: boolean;
-    config: Config;
-}
-
+/**
+ * Data passed on `this` and thus accessible globally within template expressions in a file. See {@link ContextExtender} on
+ * how to add additional data and functions by default. Expressions in a template can modify this object.
+ */
 export type Context = {
+    /** Input path of the current file */
     inputPath: string;
+    /** Content of the current file */
     content: string;
+    /** Output path of the current file */
     outputPath: string;
 } & {
     [key: string]: any;
@@ -32,7 +160,7 @@ export type Context = {
 
 type Token = { type: "expression" | "content"; text: string };
 
-export function tokenize(input: string, openTag: string, closeTag: string): Token[] {
+function tokenize(input: string, openTag: string, closeTag: string): Token[] {
     const regex = new RegExp(`(${openTag}[\\s\\S]*?${closeTag})`, "g");
     const segments: Token[] = [];
 
@@ -58,7 +186,7 @@ function escapeString(text: string): string {
     return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 }
 
-export function compile(input: string, config: Config): string {
+function compile(input: string, config: Config): string {
     const tokens = tokenize(input, config.openTag, config.closeTag);
     let program = prologue;
     for (const token of tokens) {
@@ -76,96 +204,30 @@ export function compile(input: string, config: Config): string {
     return program;
 }
 
-function parseArgs(): State {
-    const args = new Map<string, string>();
-    const noValueArgs = new Set<string>(["--watch", "--debug"]);
-
-    for (let i = 2; i < process.argv.length; ) {
-        const arg = process.argv[i];
-        if (!arg.startsWith("--")) throw new Error("Expect argument name, e.g. --in");
-        if (noValueArgs.has(arg)) {
-            args.set(arg, "");
-            i++;
-        } else {
-            if (i + 1 == process.argv.length) throw new Error("Expected value for argument " + arg);
-            const value = process.argv[i + 1];
-            args.set(arg, value);
-            i += 2;
-        }
-    }
-
-    if (!args.has("--in")) {
-        throw new Error("No input path specified via --in <path>");
-    }
-
-    if (!args.has("--out")) {
-        throw new Error("No output path specified via --out <path>");
-    }
-
-    return {
-        inputPath: args.get("--in")!,
-        outputPath: args.get("--out")!,
-        watch: args.has("--watch"),
-        debug: args.has("--debug"),
-        config: defaultConfig,
-    };
-}
-
 function evalWithContext(program: string, context: Context): any {
     const func = new Function(`with (this) { return ${program}; }`);
     return func.call(context);
 }
 
-function transform(state: State, context: Context) {
-    let { inputPath, outputPath, content } = context;
-    const inputParentDir = path.resolve(inputPath, "..");
+function transform(config: Config, context: Context) {
+    let { outputPath, content } = context;
     const outputParentDir = path.resolve(outputPath, "..");
     try {
-        const program = compile(content, state.config);
-        if (state.debug) {
+        const program = compile(content, config);
+        if (config.debug) {
             if (!fs.existsSync(outputParentDir)) {
                 fs.mkdirSync(outputParentDir);
             }
             fs.writeFileSync(outputPath + ".debug.js", program);
         }
 
-        context.readJson = (filePath: string) => {
-            filePath = path.resolve(inputParentDir, filePath);
-            return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-        };
-
-        context.include = (filePath: string, data: any) => {
-            const includeInputPath = path.resolve(inputParentDir, filePath);
-            const includeOutputPath = path.resolve(outputParentDir, filePath);
-            const includeContext = {
-                ...context,
-                ...{
-                    inputPath: includeInputPath,
-                    content: fs.readFileSync(includeInputPath, "utf-8"),
-                    outputPath: includeOutputPath,
-                },
-                ...(data ?? {})
-            };
-            return transform(state, includeContext);
-        };
-
-        context.require = (id: string) => {
-            return require(id);
-        };
-
-        context.meta = (file: string = "meta.json") => {
-            const metaFile = path.resolve(inputParentDir, file);
-            const meta = JSON.parse(fs.readFileSync(metaFile, "utf-8"));
-            Object.assign(context, meta);
+        for (const extender of config.contextExtenders) {
+            extender(config, context);
         }
-
         let output = evalWithContext(program, context);
-
-        if (inputPath.endsWith(".md")) {
-            output = marked.parse(output);
-            context.outputPath = context.outputPath.substring(0, context.outputPath.length - 3) + ".html";
+        for (const transformer of config.transformers) {
+            output = transformer(config, context, output);
         }
-
         return output;
     } catch (e) {
         console.error(e);
@@ -173,7 +235,7 @@ function transform(state: State, context: Context) {
     }
 }
 
-function processFiles(state: State, callback?: (state: State, context: Context) => string) {
+function processFiles(config: Config, callback?: (config: Config, context: Context) => string) {
     const start = performance.now();
     const traverseAndProcess = (currentInputDir: string, currentOutputDir: string) => {
         const inputItems = fs.readdirSync(currentInputDir, { withFileTypes: true });
@@ -198,7 +260,7 @@ function processFiles(state: State, callback?: (state: State, context: Context) 
             const inputPath = path.join(currentInputDir, inputItem.name);
             const outputPath = path.join(currentOutputDir, inputItem.name);
 
-            if (inputItem.isDirectory()) {
+            if (inputItem.isDirectory() && !inputItem.name.startsWith("_")) {
                 if (!fs.existsSync(outputPath)) {
                     fs.mkdirSync(outputPath, { recursive: true });
                 }
@@ -215,14 +277,14 @@ function processFiles(state: State, callback?: (state: State, context: Context) 
 
                 const isTextFile = (filePath: string): boolean => {
                     const ext = path.extname(filePath).toLowerCase();
-                    return state.config.textFileExtensions.includes(ext);
+                    return config.transformedExtensions.includes(ext);
                 };
 
                 if (callback && isTextFile(inputPath)) {
                     let content = fs.readFileSync(inputPath, "utf-8");
                     console.log(`${inputPath} > ${outputPath}`);
                     const context = { inputPath, content, outputPath };
-                    content = callback(state, context);
+                    content = callback(config, context);
                     fs.writeFileSync(context.outputPath, content, "utf8");
                 } else {
                     if (!outputStat || inputStat.mtime > outputStat.mtime) {
@@ -235,10 +297,10 @@ function processFiles(state: State, callback?: (state: State, context: Context) 
         }
     };
 
-    if (!fs.existsSync(state.outputPath)) {
-        fs.mkdirSync(state.outputPath, { recursive: true });
+    if (!fs.existsSync(config.outputPath)) {
+        fs.mkdirSync(config.outputPath, { recursive: true });
     }
-    traverseAndProcess(state.inputPath, state.outputPath);
+    traverseAndProcess(config.inputPath, config.outputPath);
 
     const deleteEmptyDirs = (dir: string) => {
         const items = fs.readdirSync(dir, { withFileTypes: true });
@@ -252,38 +314,77 @@ function processFiles(state: State, callback?: (state: State, context: Context) 
             }
         }
     };
-    deleteEmptyDirs(state.outputPath);
+    deleteEmptyDirs(config.outputPath);
     console.log(`Took ${(performance.now() - start).toFixed(0)}ms`);
 }
 
-try {
-    const state = parseArgs();
-    state.inputPath = path.resolve(state.inputPath);
-    state.outputPath = path.resolve(state.outputPath);
+/** Transforms and copies files in {@link Config.inputPath} to {@link Config.outputPath}. The output directory is deleted
+ * before processing starts. See {@link Config} for details. */
+export function blargh(config: Config) {
+    config.inputPath = path.resolve(config.inputPath);
+    config.outputPath = path.resolve(config.outputPath);
 
-    if (!fs.existsSync(state.inputPath)) {
-        throw new Error(`Input path ${state.inputPath} does not exist.`);
+    if (!fs.existsSync(config.inputPath)) {
+        throw new Error(`Input path ${config.inputPath} does not exist.`);
     }
-    if (!fs.lstatSync(state.inputPath).isDirectory()) {
-        throw new Error(`Input path ${state.inputPath} is not a directory.`);
-    }
-
-    if (fs.existsSync(state.inputPath + "/config.json")) {
-        const config = JSON.parse(fs.readFileSync(state.inputPath + "/config.json", "utf-8"));
-        state.config = { ...state.config, ...config };
+    if (!fs.lstatSync(config.inputPath).isDirectory()) {
+        throw new Error(`Input path ${config.inputPath} is not a directory.`);
     }
 
     try {
-        processFiles(state, transform);
+        processFiles(config, transform);
     } catch (e) {}
 
-    if (state.watch) {
-        fs.watch(state.inputPath, { recursive: true }, () => {
+    if (config.watch) {
+        fs.watch(config.inputPath, { recursive: true }, () => {
             try {
-                processFiles(state, transform);
+                processFiles(config, transform);
+                console.log();
             } catch (e) {}
         });
     }
-} catch (e) {
-    console.error((e as Error).message);
+}
+
+if (require.main === module) {
+    function parseArgs(): Config {
+        const args = new Map<string, string>();
+        const noValueArgs = new Set<string>(["--watch", "--debug"]);
+
+        for (let i = 2; i < process.argv.length; ) {
+            const arg = process.argv[i];
+            if (!arg.startsWith("--")) throw new Error("Expect argument name, e.g. --in");
+            if (noValueArgs.has(arg)) {
+                args.set(arg, "");
+                i++;
+            } else {
+                if (i + 1 == process.argv.length) throw new Error("Expected value for argument " + arg);
+                const value = process.argv[i + 1];
+                args.set(arg, value);
+                i += 2;
+            }
+        }
+
+        if (!args.has("--in")) {
+            throw new Error("No input path specified via --in <path>");
+        }
+
+        if (!args.has("--out")) {
+            throw new Error("No output path specified via --out <path>");
+        }
+
+        return {
+            ...defaultConfig,
+            inputPath: args.get("--in")!,
+            outputPath: args.get("--out")!,
+            watch: args.has("--watch"),
+            debug: args.has("--debug"),
+        };
+    }
+
+    try {
+        let config = parseArgs();
+        blargh(config);
+    } catch (e) {
+        console.error((e as Error).message);
+    }
 }

@@ -1,0 +1,17 @@
+<% meta() %>
+<%= include("./_partials/header.html") %>
+
+<%
+const postMetas = metas("posts").sort((a, b) => b.data.date.localeCompare(a.data.date));
+%>
+
+<div class="post-list">
+<% for (const post of postMetas) { %>
+    <div class="post-title">
+        <h1><a href="/posts/<%=post.directory%>/"><%=post.data.postTitle%></a></h1>
+        <div><%=post.data.date%></div>
+    </div>
+<% } %>
+</div>
+
+<%= include("./_partials/footer.html") %>

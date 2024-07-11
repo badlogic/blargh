@@ -1,0 +1,135 @@
+:root {
+    --font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --text-color: #000000;
+    --dimmed-text-color: #333;
+    --background-color: #fff;
+    --link-color: #007bff;
+    --link-hover-color: #0056b3;
+    --border-color: #ccc;
+}
+
+[data-theme="dark"] {
+    --text-color: #fff;
+    --dimmed-text-color: #ccc;
+    --background-color: #000000;
+    --link-color: #66b2ff;
+    --link-hover-color: #3399ff;
+    --border-color: #444;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+    color: var(--text-color);
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+}
+
+a {
+    text-decoration: none;
+    color: var(--link-color);
+}
+
+a:hover {
+    color: var(--link-hover-color);
+}
+
+h1 {
+    font-size: 2rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+}
+
+h3 {
+    font-size: 1rem;
+}
+
+img {
+    border-radius: 0.5rem;
+    width: 100%;
+}
+
+p:has(img) {
+    line-height: 0;
+}
+
+figure {
+    margin: 1rem 0;
+    line-height: 0;
+}
+
+figcaption {
+    line-height: 1.2rem;
+    font-size: 0.75em;
+    font-style: italic;
+    text-align: center;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    line-height: 1.6;
+    flex-grow: 1;
+}
+
+header {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+}
+
+header > a {
+    color: var(--text-color);
+}
+
+.header-title {
+    font-size: 2em;
+}
+
+footer {
+    display: flex;
+    justify-content: center;
+    margin: 1em;
+    margin-top: 0;
+}
+
+article {
+    font-size: 1em;
+    margin: 0.5rem 1rem;
+    flex-grow: 1;
+}
+
+.post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.post-title > h1 {
+    margin: 0;
+}
+
+.post-title > div {
+    font-size: 0.75em;
+    color: var(--dimmed-text-color);
+}
+
+/* Highlight.js theme */
+<%= include("_hljs-dark.min.css")%>
