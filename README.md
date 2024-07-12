@@ -468,6 +468,8 @@ The output will be:
 <p>A super funny string generated in file /Users/badlogic/workspaces/blargh/test/index.md</p>
 ```
 
+Check the [default built-in context extender](src/context.ts#L40) for an example with more complexity.
+
 ### Adding transformers
 This is achieved by appending one or more [`Transformer`](src/transform.ts#L47) to `config.transformers`. A `Transformer` is a function that receives a [`Config`](src/config.ts), a [`Context`](src/context.ts) for the current transformed file, and the content that would currently be output for the input file. The transformer then generates new content to be output based on the previous content.
 
