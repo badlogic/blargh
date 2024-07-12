@@ -21,6 +21,11 @@ export function serve(directory: string, port: number = 8080): void {
     app.use((req, res, next) => {
         let filePath = path.join(directory, req.path);
 
+        if (!fs.existsSync(filePath)) {
+            res.sendStatus(404);
+            return;
+        }
+
         if (fs.statSync(filePath).isDirectory()) {
             filePath = path.join(filePath, 'index.html');
         }

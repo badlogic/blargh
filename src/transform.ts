@@ -1,14 +1,15 @@
 import * as fs from "fs";
 import hljs from "highlight.js";
-import { Marked } from "marked";
+import { Marked, Tokens } from "marked";
 import { markedHighlight } from "marked-highlight";
 import * as path from "path";
 import { Config } from "./config";
 import { Context } from "./context";
 import { compile, interpret } from "./interpreter";
 import { serve } from "./server";
+import prettifyHtml from "html-prettify";
 
-// Global Marked object with highlight.js support.
+// Global Marked object with highlight.js support and disabling of indented code blocks.
 const marked = new Marked(
     markedHighlight({
         langPrefix: "hljs language-",
@@ -19,11 +20,34 @@ const marked = new Marked(
     })
 );
 
+marked.use({
+    // Taken and updated from https://github.com/markedjs/marked/issues/1696
+    tokenizer: {
+        code(src: string): Tokens.Code | undefined {
+            const cap = this.rules.block.code.exec(src);
+            if (cap) {
+                const lastToken = this.lexer.tokens[this.lexer.tokens.length - 1];
+            if (lastToken && lastToken.type === 'paragraph') {
+                return {
+                raw: cap[0],
+                text: cap[0].trimRight()
+                } as any;
+            }
+              return {
+                type: 'html',
+                raw: cap[0],
+                text: cap[0]
+              } as any;
+            }
+          }
+    }
+})
+
 /** Transforms the given content and returns the transformed result. You can add transformers via {@link Config.transformers}. */
-export type Transformer = (config: Config, context: Context, content: string) => string;
+export type Transformer = (config: Config, context: Context, content: string) => Promise<string>;
 
 /** Markdown transformer which also applies highlight.js to code sections. */
-export const MarkdownTransformer: Transformer = (config: Config, context: Context, output: string) => {
+export const MarkdownTransformer: Transformer = async (config: Config, context: Context, output: string) => {
     if (context.inputPath.endsWith(".md")) {
         output = marked.parse(output) as string;
         context.outputPath = context.outputPath.substring(0, context.outputPath.length - 3) + ".html";
@@ -31,7 +55,7 @@ export const MarkdownTransformer: Transformer = (config: Config, context: Contex
     return output;
 };
 
-export function transform(config: Config, context: Context) {
+export async function transform(config: Config, context: Context) {
     let { outputPath, content } = context;
     const outputParentDir = path.resolve(outputPath, "..");
     try {
@@ -48,8 +72,9 @@ export function transform(config: Config, context: Context) {
         }
         let output = interpret(program, context);
         for (const transformer of config.transformers) {
-            output = transformer(config, context, output);
+            output = await transformer(config, context, output);
         }
+
         return output;
     } catch (e) {
         console.error(e);
@@ -57,9 +82,9 @@ export function transform(config: Config, context: Context) {
     }
 }
 
-function processFiles(config: Config, callback?: (config: Config, context: Context) => string) {
+async function processFiles(config: Config, callback?: (config: Config, context: Context) => Promise<string>) {
     const start = performance.now();
-    const traverseAndProcess = (currentInputDir: string, currentOutputDir: string) => {
+    const traverseAndProcess = async (currentInputDir: string, currentOutputDir: string) => {
         const inputItems = fs.readdirSync(currentInputDir, { withFileTypes: true });
         const outputItems = fs.readdirSync(currentOutputDir, { withFileTypes: true });
 
@@ -86,7 +111,7 @@ function processFiles(config: Config, callback?: (config: Config, context: Conte
                 if (!fs.existsSync(outputPath)) {
                     fs.mkdirSync(outputPath, { recursive: true });
                 }
-                traverseAndProcess(inputPath, outputPath);
+                await traverseAndProcess(inputPath, outputPath);
             } else if (inputItem.isFile() && !inputItem.name.startsWith("_")) {
                 const inputStat = fs.statSync(inputPath);
                 let outputStat: fs.Stats | null = null;
@@ -106,7 +131,7 @@ function processFiles(config: Config, callback?: (config: Config, context: Conte
                     let content = fs.readFileSync(inputPath, "utf-8");
                     console.log(`${inputPath} > ${outputPath}`);
                     const context = { inputPath, content, outputPath };
-                    content = callback(config, context);
+                    content = await callback(config, context);
                     fs.writeFileSync(context.outputPath, content, "utf8");
                 } else {
                     if (!outputStat || inputStat.mtime > outputStat.mtime) {
@@ -122,7 +147,7 @@ function processFiles(config: Config, callback?: (config: Config, context: Conte
     if (!fs.existsSync(config.outputPath)) {
         fs.mkdirSync(config.outputPath, { recursive: true });
     }
-    traverseAndProcess(config.inputPath, config.outputPath);
+    await traverseAndProcess(config.inputPath, config.outputPath);
 
     const deleteEmptyDirs = (dir: string) => {
         const items = fs.readdirSync(dir, { withFileTypes: true });
@@ -143,7 +168,7 @@ function processFiles(config: Config, callback?: (config: Config, context: Conte
 /** Transforms and copies files in {@link Config.inputPath} to {@link Config.outputPath}. The output directory is deleted
  * before processing starts. Optionally watches the input directory for changes, and serves the output directory.
  * See {@link Config} for details. */
-export function blargh(config: Config) {
+export async function blargh(config: Config) {
     config.inputPath = path.resolve(config.inputPath);
     config.outputPath = path.resolve(config.outputPath);
 
@@ -155,13 +180,13 @@ export function blargh(config: Config) {
     }
 
     try {
-        processFiles(config, transform);
+        await processFiles(config, transform);
     } catch (e) {}
 
     if (config.watch) {
-        fs.watch(config.inputPath, { recursive: true }, () => {
+        fs.watch(config.inputPath, { recursive: true }, async () => {
             try {
-                processFiles(config, transform);
+                await processFiles(config, transform);
                 console.log();
             } catch (e) {}
         });

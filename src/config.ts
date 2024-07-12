@@ -1,5 +1,5 @@
-import { ContextExtender } from "./context";
-import { Transformer } from "./transform";
+import { ContextExtender, DefaultContextExtender } from "./context";
+import { MarkdownTransformer, Transformer } from "./transform";
 
 /** Configuration to be passed to {@link blargh()}*/
 export interface Config {
@@ -26,3 +26,17 @@ export interface Config {
     /** List or {@link ContextExtender}s to be applied to the {@link Context} before templates expressions are evaluated. */
     contextExtenders: ContextExtender[];
 }
+
+export const defaultConfig: Config = {
+    inputPath: "",
+    outputPath: "",
+    watch: false,
+    serve: false,
+    servePort: 8080,
+    debug: false,
+    openTag: "<%",
+    closeTag: "%>",
+    transformedExtensions: [".html", ".md", ".css", ".js"],
+    transformers: [MarkdownTransformer],
+    contextExtenders: [DefaultContextExtender],
+};

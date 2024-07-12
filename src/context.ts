@@ -28,42 +28,21 @@ export type ContextExtender = (config: Config, context: Context) => void;
  *
  * * `readDir(filePath: string) => { file: string, isDirectory: boolean }[]`: returns a list of files in the given directory
  * * `fileExists(filePath: string) => boolean`: returns true if the file exists, false otherwise
- * * `include(filePath: string, context?: any) => string`: reads the given file, transforms it via the {@link Transformer}s in {@link Config.transformers},
- *    and returns the resulting output string. The optional `context` will be merged with the context from the file in which `include()` was called.
+ * * `render(filePath: string, context?: any) => string`: reads the given file, transforms it via the {@link Transformer}s in {@link Config.transformers},
+ *    and returns the resulting output string. The optional `context` will be merged with the context from the file in which `render()` was called.
  * * `require(id: string) => any`: pass through to Node.js' `require()`. Allows you to load any module in your template.
  * * `meta(filePath: string) => void`: reads the given JSON file and merges its content with the current context. If omitted, `filePath` defaults to
  *   `./meta.json`.
- * * `metas(directory: string) => { directory: string, data: any }[]`: recursively finds all `meta.json` files in the subdirectories of the given `directory`.
+ * * `metas(dirPath: string) => { directory: string, data: any }[]`: recursively finds all `meta.json` files in the subdirectories of the given `directory`.
  * * `rss(filePath: string, channel: {title: string, description: string, link: string}, items: {title: string, description: string, link: string, pubdate: string}[])`:
  *    writes RSS XML based on the channel and items to the file path.
  */
 export const DefaultContextExtender: ContextExtender = (config: Config, context: Context) => {
     const inputParentDir = path.resolve(context.inputPath, "..");
     const outputParentDir = path.resolve(context.outputPath, "..");
-    context.readFile = (filePath: string) => {
-        filePath = path.resolve(inputParentDir, filePath);
-        return fs.readFileSync(filePath, "utf-8");
-    };
-
-    context.readDir = (filePath: string) => {
-        filePath = path.resolve(inputParentDir, filePath);
-        const files = fs.readdirSync(filePath);
-        return files.map((f) => {
-            const fullPath = path.resolve(filePath, f);
-            return {
-                file: f,
-                isDirectory: fs.statSync(fullPath).isDirectory(),
-            };
-        });
-    };
-
-    context.fileExists = (filePath: string) => {
-        filePath = path.resolve(inputParentDir, filePath);
-        return fs.existsSync(filePath);
-    };
 
     const parentContext = context;
-    context.include = (filePath: string, context: any) => {
+    context.render = (filePath: string, context: any) => {
         const includeInputPath = path.resolve(inputParentDir, filePath);
         const includeOutputPath = path.resolve(outputParentDir, filePath);
         const includeContext = {
@@ -88,8 +67,8 @@ export const DefaultContextExtender: ContextExtender = (config: Config, context:
         Object.assign(context, meta);
     };
 
-    context.metas = (filePath: string = "") => {
-        filePath = path.resolve(inputParentDir, filePath);
+    context.metas = (dirPath: string = "") => {
+        dirPath = path.resolve(inputParentDir, dirPath);
 
         const findMetas = (dir: string): any[] => {
             let metas: any[] = [];
@@ -101,7 +80,7 @@ export const DefaultContextExtender: ContextExtender = (config: Config, context:
 
                 if (fs.existsSync(metaPath)) {
                     metas.push({
-                        directory: path.relative(filePath, fullPath),
+                        directory: path.relative(dirPath, fullPath),
                         meta: JSON.parse(fs.readFileSync(metaPath, "utf-8")),
                     });
                 } else if (fs.lstatSync(fullPath).isDirectory()) {
@@ -112,7 +91,7 @@ export const DefaultContextExtender: ContextExtender = (config: Config, context:
             return metas;
         };
 
-        return findMetas(filePath);
+        return findMetas(dirPath);
     };
 
     context.rss = (filePath: string, channel: RssChannel, items: RssItem[]) => {

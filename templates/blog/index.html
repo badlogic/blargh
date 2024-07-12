@@ -1,5 +1,11 @@
 <% meta() %>
-<%= include("./_partials/header.html") %>
+<%= render("./_partials/header.html") %>
+
+<%
+const fs = require("fs");
+const lastModified = fs.statSync(inputPath).mtime;
+%>
+Last changed: <%= lastModified %>
 
 <%
 // Gather all the post metas and sort them by date
@@ -29,4 +35,4 @@ rss("rss.xml", channel, items);
 <% } %>
 </div>
 
-<%= include("./_partials/footer.html") %>
+<%= render("./_partials/footer.html") %>

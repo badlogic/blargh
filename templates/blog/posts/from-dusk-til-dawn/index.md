@@ -2,7 +2,7 @@
     meta("../../meta.json")
     meta()
 %>
-<%= include("../../_partials/post-header.html") %>
+<%= render("../../_partials/post-header.html") %>
 
 <figure>
 <img src="./banner.jpg">
@@ -48,4 +48,4 @@ Etiam pulvinar leo sed libero volutpat, a molestie purus pharetra. Etiam nec tem
 
 Nam interdum neque vitae consequat congue. Morbi ornare justo at tincidunt sagittis. Pellentesque efficitur rhoncus erat at tristique. Praesent elementum hendrerit velit ac faucibus. Nulla in vehicula sapien, lobortis imperdiet lacus. Pellentesque scelerisque nunc sit amet mauris volutpat fermentum. Aliquam sed sem consequat, fringilla nulla at, ultricies dolor. Cras vitae diam lobortis nisl laoreet luctus. Aenean nulla quam, scelerisque vel massa vel, blandit volutpat lectus. Pellentesque purus magna, sagittis ultricies suscipit sed, viverra at orci.
 
-<%= include("../../_partials/footer.html") %>
+<%= render("../../_partials/footer.html") %>

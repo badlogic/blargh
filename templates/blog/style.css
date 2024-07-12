@@ -143,4 +143,4 @@ pre > code {
 }
 
 /* Highlight.js theme */
-<%= include("./_css/atom-one-dark-reasonable.min.css")%>
+<%= render("./_css/atom-one-dark-reasonable.min.css")%>

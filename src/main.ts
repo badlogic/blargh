@@ -1,21 +1,5 @@
 import { blargh } from ".";
-import { Config } from "./config";
-import { DefaultContextExtender } from "./context";
-import { MarkdownTransformer } from "./transform";
-
-export const defaultConfig: Config = {
-    inputPath: "",
-    outputPath: "",
-    watch: false,
-    serve: false,
-    servePort: 8080,
-    debug: false,
-    openTag: "<%",
-    closeTag: "%>",
-    transformedExtensions: [".txt", ".html", ".css", ".js", ".json", ".md"],
-    transformers: [MarkdownTransformer],
-    contextExtenders: [DefaultContextExtender],
-};
+import { Config, defaultConfig } from "./config";
 
 function printHelp() {
     console.log(
@@ -26,6 +10,7 @@ Arguments:
     --watch         Watch input directory for changes
     --debug         Generate debug.js files next to output files
     --serve <port>? Serves the output directory on http://localhost:<port>
+    --extension     File extension to be transformed by the templating engine.
     `.trim()
     );
 }
@@ -66,6 +51,13 @@ function parseArgs(): Config {
         args.set("--serve", parseInt(port));
     }
 
+    const extensions = [];
+    for (const entry of args.entries()) {
+        if (entry[0] == "--extension") {
+            extensions.push(entry[1]);
+        }
+    }
+
     return {
         ...defaultConfig,
         inputPath: args.get("--in"),
@@ -74,6 +66,7 @@ function parseArgs(): Config {
         serve: args.has("--serve"),
         servePort: args.get("--serve"),
         debug: args.has("--debug"),
+        transformedExtensions: [...defaultConfig.transformedExtensions, ...extensions]
     };
 }
 
