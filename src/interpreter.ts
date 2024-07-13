@@ -18,7 +18,7 @@ function tokenize(input: string, openTag: string, closeTag: string): Token[] {
     return segments;
 }
 
-const prologue = `(() => {
+const prologue = `(async () => {
 let __out = "";
 `;
 
@@ -37,7 +37,7 @@ export function compile(input: string, openTag: string, closeTag: string): strin
     for (const token of tokens) {
         if (token.type === "expression") {
             if (token.text.startsWith("=")) {
-                program += `\n__out += (${token.text.substring(1)})`;
+                program += `\n__out += await (${token.text.substring(1)})`;
             } else {
                 program += "\n" + token.text;
             }
@@ -51,7 +51,7 @@ export function compile(input: string, openTag: string, closeTag: string): strin
 
 // Runs the program with the given context. Properties from the context are
 // accessible globally within the program.
-export function interpret(program: string, context: Context): any {
+export function interpret(program: string, context: Context): Promise<any> {
     const func = new Function(`with (this) { return ${program}; }`);
     return func.call(context);
 }

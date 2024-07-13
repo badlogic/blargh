@@ -7,7 +7,6 @@ import { Config } from "./config";
 import { Context } from "./context";
 import { compile, interpret } from "./interpreter";
 import { serve } from "./server";
-import prettifyHtml from "html-prettify";
 
 // Global Marked object with highlight.js support and disabling of indented code blocks.
 const marked = new Marked(
@@ -70,7 +69,7 @@ export async function transform(config: Config, context: Context) {
         for (const extender of config.contextExtenders) {
             extender(config, context);
         }
-        let output = interpret(program, context);
+        let output = await interpret(program, context);
         for (const transformer of config.transformers) {
             output = await transformer(config, context, output);
         }

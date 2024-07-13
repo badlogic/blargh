@@ -82,15 +82,15 @@ console.log("Hello, world!")
 `blargh` will compile a small JavaScript program from this input:
 
 ```javascript
-(() => {
+(async () => {
 let __out = "";
 
 __out += "# Hello world\n\nThis site was generated on ";
-__out += ( new Date().toString() )
+__out += await ( new Date().toString() )
 __out += "\n\n";
  for (let i = 0; i < 10; i++) {
 __out += "\nCount ";
-__out += ( i )
+__out += await ( i )
 __out += "\n";
  }
 __out += "\n\nHere's \"Hello, world!\" in JavaScript:\n\n```javascript\nconsole.log(\"Hello, world!\")\n```";
@@ -98,6 +98,8 @@ __out += "\n\nHere's \"Hello, world!\" in JavaScript:\n\n```javascript\nconsole.
 return __out;
 })()
 ```
+
+> **Note:** the generated program is an async function. Expressions withint `<%= %>` are awaited, meaning, they are assumed to be async. If you use async functions like `fetch()` in JavaScript code blocks between `<% %>`, do not forget to await the result.
 
 `blargh` then runs this JavaScript program to generate the final output:
 

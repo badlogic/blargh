@@ -42,7 +42,7 @@ export const DefaultContextExtender: ContextExtender = (config: Config, context:
     const outputParentDir = path.resolve(context.outputPath, "..");
 
     const parentContext = context;
-    context.render = (filePath: string, context: any) => {
+    context.render = async (filePath: string, context: any) => {
         const includeInputPath = path.resolve(inputParentDir, filePath);
         const includeOutputPath = path.resolve(outputParentDir, filePath);
         const includeContext = {
@@ -54,7 +54,7 @@ export const DefaultContextExtender: ContextExtender = (config: Config, context:
             },
             ...(context ?? {}),
         };
-        return transform(config, includeContext);
+        return await transform(config, includeContext);
     };
 
     context.require = (id: string) => {
