@@ -17,6 +17,7 @@ The `blargh` CLI understands the following arguments:
 * `--serve <port>`: Serves the output directory locally on the given port. Pages opened in a browser will automatically refresh if any output files changed.
 * `--extension <ext>`: Additional file extension that should be transformed, e.g. ".txt". By default, `.html`, `.md`, `.css`, and `.js` files are transformed. Any other file type is copied verbatimely.
 * `--debug`: Write the generated JavaScript code for a transformed input file to the output directory using the scheme `<input-file-name>.debug.js`, e.g. `index.html` generates `index.html.debug.js`.
+* `--version`: outputs the version`
 
 Usually, you'll use this command line:
 

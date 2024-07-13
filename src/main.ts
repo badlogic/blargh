@@ -1,3 +1,5 @@
+import * as path from "path";
+import * as fs from "fs";
 import { blargh } from ".";
 import { Config, defaultConfig } from "./config";
 
@@ -11,13 +13,14 @@ Arguments:
     --debug         Generate debug.js files next to output files
     --serve <port>? Serves the output directory on http://localhost:<port>
     --extension     File extension to be transformed by the templating engine.
+    --version       Outputs the version
     `.trim()
     );
 }
 
 function parseArgs(): Config {
     const args = new Map();
-    const noValueArgs = new Set<string>(["--watch", "--debug"]);
+    const noValueArgs = new Set<string>(["--watch", "--debug", "--version"]);
 
     for (let i = 2; i < process.argv.length; ) {
         const arg = process.argv[i];
@@ -35,6 +38,13 @@ function parseArgs(): Config {
                 i += 2;
             }
         }
+    }
+
+    if (args.has("--version")) {
+        const packageJsonPath = path.resolve(__dirname, '../package.json');
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        console.log(packageJson.version);
+        if (args.size == 1) process.exit(0);
     }
 
     if (!args.has("--in")) {
