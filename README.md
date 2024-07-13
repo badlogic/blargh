@@ -6,7 +6,7 @@
 ### CLI
 To install `blargh` globally and make it available on the command line:
 ```
-npm install -g blargh
+npm install -g @mariozechner/blargh
 ```
 
 The `blargh` CLI understands the following arguments:
@@ -28,7 +28,7 @@ blargh --in input --out output --watch --serve 8080
 `blargh` is an ES6 module which you can add to your project via your package manager of choice:
 
 ```
-npm install blargh
+npm install @mariozechner/blargh
 ```
 
 **index.mjs**
