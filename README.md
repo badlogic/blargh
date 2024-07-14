@@ -479,3 +479,6 @@ This is achieved by appending one or more [`Transformer`](src/transform.ts#L47) 
 A transformer is invoked after the JavaScript in a file has been evaluated.
 
 The [MarkdownTransformer](src/transform.ts#L50) is a good example. It checks if the input file is a `.md` file, then transforms the content to HTML via the Marked library. It also modifies the `outputPath` to have a `.html` suffix instead of the original `.md`.
+
+### A full-blowb personal site and blog
+Have a look a the [sources](https://github.com/badlogic/mariozechner.at) for [mariozechner.at](https://mariozechner.at) for an example on how to structure a personal site and blog. Feel free to fork it and make it your own.
