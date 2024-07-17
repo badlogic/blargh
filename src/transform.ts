@@ -7,6 +7,7 @@ import { Config } from "./config";
 import { Context } from "./context";
 import { compile, interpret } from "./interpreter";
 import { serve } from "./server";
+import cheerio from 'cheerio';
 
 // Global Marked object with highlight.js support and disabling of indented code blocks.
 const marked = new Marked(
@@ -50,6 +51,31 @@ export const MarkdownTransformer: Transformer = async (config: Config, context: 
     if (context.inputPath.endsWith(".md")) {
         output = marked.parse(output) as string;
         context.outputPath = context.outputPath.substring(0, context.outputPath.length - 3) + ".html";
+    }
+    return output;
+};
+
+/** Table of contents transformer which will:
+ * - Search for %%toc%% in .html output files
+ * - Gather all headers from h3 through h4 and give them unique ids of the form toc_<index>
+ * - Generate a <ul> from the headers with anchor links and replace %%toc%% with the table of contents
+ */
+export const TableOfContentTransformer: Transformer = async (config: Config, context: Context, output: string) => {
+    if (context.outputPath.endsWith(".html") && output.includes("%%toc%%")) {
+        const $ = cheerio.load(output);
+
+        let toc = '<ul>';
+        $('h3, h4, h5').each((index, element) => {
+            const tag = $(element).get(0)?.tagName;
+            const text = $(element).text();
+            const id = `toc_${index}`;
+            $(element).attr('id', id);
+            toc += `<li class="${tag}"><a href="#${id}">${text}</a></li>`;
+        });
+        toc += '</ul>';
+
+        output = $.html(); // Get the modified HTML
+        output = output.replace("%%toc%%", toc);
     }
     return output;
 };

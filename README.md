@@ -407,6 +407,11 @@ The `rss.xml` file will look like this:
   </rss>
 ```
 
+## Table of contents
+You can place a `%%toc%%` tag anywhere in your `.md` or `.html` files to generate a table of contents in that place from `<h3>`, `<h4>` and `<h5>` headings.
+
+The headings will receive a unique id which is used by anchor links in the generated table of contents.
+
 ## Debugging in VS Code
 ![](docs/debugging.png)
 `blargh` generates a JavaScript program for each transformed file, to "interpret" the inline JavaScript. To debug such a program:
