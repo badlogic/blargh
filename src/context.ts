@@ -15,6 +15,8 @@ export type Context = {
     content: string;
     /** Output path of the current file */
     outputPath: string;
+    /** Whether the file is being processed due to it being rendered in another file via render() */
+    isRendered: boolean;
 } & {
     [key: string]: any;
 };
@@ -51,6 +53,7 @@ export const DefaultContextExtender: ContextExtender = (config: Config, context:
                 inputPath: includeInputPath,
                 content: fs.readFileSync(includeInputPath, "utf-8"),
                 outputPath: includeOutputPath,
+                isRendered: true,
             },
             ...(context ?? {}),
         };

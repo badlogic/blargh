@@ -1,5 +1,5 @@
 import { ContextExtender, DefaultContextExtender } from "./context";
-import { MarkdownTransformer, TableOfContentTransformer, Transformer } from "./transform";
+import { MarkdownTransformer, TableOfContentTransformer, TargetBlankTransformer, Transformer } from "./transform";
 
 /** Configuration to be passed to {@link blargh()}*/
 export interface Config {
@@ -37,6 +37,6 @@ export const defaultConfig: Config = {
     openTag: "<%",
     closeTag: "%>",
     transformedExtensions: [".html", ".md", ".css", ".js"],
-    transformers: [MarkdownTransformer, TableOfContentTransformer],
+    transformers: [MarkdownTransformer, TableOfContentTransformer, TargetBlankTransformer],
     contextExtenders: [DefaultContextExtender],
 };

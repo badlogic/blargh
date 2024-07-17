@@ -74,11 +74,31 @@ export const TableOfContentTransformer: Transformer = async (config: Config, con
         });
         toc += '</ul>';
 
-        output = $.html(); // Get the modified HTML
+        output = $.html();
         output = output.replace("%%toc%%", toc);
     }
     return output;
 };
+
+/**
+ * Adds target="_blank" to all <a> elements in HTML output, except for <a> elements with a href starting with "#".
+ */
+export const TargetBlankTransformer: Transformer = async (config: Config, context: Context, output: string) => {
+    if (context.outputPath.endsWith(".html") && !context.isRendered) {
+        const $ = cheerio.load(output, { xmlMode: false });
+
+        $('a').each((_, elem) => {
+            const href = $(elem).attr('href');
+            if (href && !href.startsWith('#')) {
+                $(elem).attr('target', '_blank');
+            }
+        });
+
+        output = $.html()!;
+    }
+    return output;
+}
+
 
 export async function transform(config: Config, context: Context) {
     let { outputPath, content } = context;
@@ -155,7 +175,7 @@ async function processFiles(config: Config, callback?: (config: Config, context:
                 if (callback && isTextFile(inputPath)) {
                     let content = fs.readFileSync(inputPath, "utf-8");
                     console.log(`${inputPath} > ${outputPath}`);
-                    const context = { inputPath, content, outputPath };
+                    const context = { inputPath, content, outputPath, isRendered: false};
                     content = await callback(config, context);
                     fs.writeFileSync(context.outputPath, content, "utf8");
                 } else {
