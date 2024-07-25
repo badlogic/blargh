@@ -7,7 +7,7 @@ import { Config } from "./config";
 import { Context } from "./context";
 import { compile, interpret } from "./interpreter";
 import { serve } from "./server";
-import cheerio from 'cheerio';
+import * as cheerio from "cheerio";
 
 // Global Marked object with highlight.js support and disabling of indented code blocks.
 const marked = new Marked(
@@ -27,21 +27,21 @@ marked.use({
             const cap = this.rules.block.code.exec(src);
             if (cap) {
                 const lastToken = this.lexer.tokens[this.lexer.tokens.length - 1];
-            if (lastToken && lastToken.type === 'paragraph') {
+                if (lastToken && lastToken.type === "paragraph") {
+                    return {
+                        raw: cap[0],
+                        text: cap[0].trimRight(),
+                    } as any;
+                }
                 return {
-                raw: cap[0],
-                text: cap[0].trimRight()
+                    type: "html",
+                    raw: cap[0],
+                    text: cap[0],
                 } as any;
             }
-              return {
-                type: 'html',
-                raw: cap[0],
-                text: cap[0]
-              } as any;
-            }
-          }
-    }
-})
+        },
+    },
+});
 
 /** Transforms the given content and returns the transformed result. You can add transformers via {@link Config.transformers}. */
 export type Transformer = (config: Config, context: Context, content: string) => Promise<string>;
@@ -57,27 +57,70 @@ export const MarkdownTransformer: Transformer = async (config: Config, context: 
 
 /** Table of contents transformer which will:
  * - Search for %%toc%% in .html output files
- * - Gather all headers from h3 through h4 and give them unique ids of the form toc_<index>
- * - Generate a <ul> from the headers with anchor links and replace %%toc%% with the table of contents
+ * - Find the enclosing <article> parent element
+ * - Gather all headers from h2 through h6 in the parent element and give them unique ids of the form toc_<index>
+ * - Generate a nested <ul> from the headers with anchor links and replace %%toc%% with the table of contents
  */
 export const TableOfContentTransformer: Transformer = async (config: Config, context: Context, output: string) => {
     if (context.outputPath.endsWith(".html") && output.includes("%%toc%%")) {
         const $ = cheerio.load(output);
 
-        let toc = '<ul>';
-        $('h3, h4, h5').each((index, element) => {
-            const tag = $(element).get(0)?.tagName;
-            const text = $(element).text();
-            const id = `toc_${index}`;
-            $(element).attr('id', id);
-            toc += `<li class="${tag}"><a href="#${id}">${text}</a></li>`;
+        const parent = $('article:contains("%%toc%%")').first();
+
+        if (parent.length > 0) {
+            const toc = buildTOC(parent, $).trim();
+            parent.html(parent.html()!.replace("%%toc%%", toc));
+        }
+
+        $("p").each((index, element) => {
+            if ($(element).text().trim() === "") {
+                $(element).remove();
+            }
         });
-        toc += '</ul>';
 
         output = $.html();
-        output = output.replace("%%toc%%", toc);
     }
     return output;
+};
+
+const buildTOC = (parent: cheerio.Cheerio<any>, $: cheerio.CheerioAPI): string => {
+    const headings = parent.find("h2, h3, h4, h5, h6");
+    let toc = "<ul>";
+    const levels: { [key: number]: number } = {};
+    let lastLevel = 0;
+
+    headings.each((index: number, element: cheerio.Element) => {
+        const tag = element.tagName;
+        const text = $(element).text();
+        const id = `toc_${index}`;
+        $(element).attr("id", id);
+
+        const level = parseInt(tag.substring(1));
+
+        if (index === 0) {
+            lastLevel = level;
+        }
+
+        if (level > lastLevel) {
+            toc += "<ul>";
+        } else if (level < lastLevel) {
+            toc += "</li>";
+            for (let i = lastLevel; i > level; i--) {
+                toc += "</ul></li>";
+            }
+        } else {
+            toc += "</li>";
+        }
+
+        toc += `<li class="${tag}"><a href="#${id}">${text}</a>`;
+        lastLevel = level;
+    });
+
+    for (let i = lastLevel; i > 0; i--) {
+        toc += "</li></ul>";
+    }
+
+    return toc;
 };
 
 /**
@@ -87,18 +130,17 @@ export const TargetBlankTransformer: Transformer = async (config: Config, contex
     if (context.outputPath.endsWith(".html") && !context.isRendered) {
         const $ = cheerio.load(output, { xmlMode: false });
 
-        $('a').each((_, elem) => {
-            const href = $(elem).attr('href');
-            if (href && !href.startsWith('#')) {
-                $(elem).attr('target', '_blank');
+        $("a").each((_, elem) => {
+            const href = $(elem).attr("href");
+            if (href && !href.startsWith("#")) {
+                $(elem).attr("target", "_blank");
             }
         });
 
         output = $.html()!;
     }
     return output;
-}
-
+};
 
 export async function transform(config: Config, context: Context) {
     let { outputPath, content } = context;
@@ -175,7 +217,7 @@ async function processFiles(config: Config, callback?: (config: Config, context:
                 if (callback && isTextFile(inputPath)) {
                     let content = fs.readFileSync(inputPath, "utf-8");
                     console.log(`${inputPath} > ${outputPath}`);
-                    const context = { inputPath, content, outputPath, isRendered: false};
+                    const context = { inputPath, content, outputPath, isRendered: false };
                     content = await callback(config, context);
                     fs.writeFileSync(context.outputPath, content, "utf8");
                 } else {
