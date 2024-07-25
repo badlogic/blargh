@@ -1,6 +1,6 @@
 {
   "name": "@mariozechner/blargh",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "main": "dist/index.js",
   "bin": {
     "blargh": "dist/main.js"
