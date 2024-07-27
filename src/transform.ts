@@ -73,7 +73,7 @@ export const TableOfContentTransformer: Transformer = async (config: Config, con
         }
 
         $("p").each((index, element) => {
-            if ($(element).text().trim() === "") {
+            if ($(element).text().trim() === "" && $(element).children.length == 0) {
                 $(element).remove();
             }
         });
