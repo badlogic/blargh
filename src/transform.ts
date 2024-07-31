@@ -2,6 +2,7 @@ import * as fs from "fs";
 import hljs from "highlight.js";
 import { Marked, Tokens } from "marked";
 import { markedHighlight } from "marked-highlight";
+import katex from 'katex';
 import * as path from "path";
 import { Config } from "./config";
 import { Context } from "./context";
@@ -9,8 +10,20 @@ import { compile, interpret } from "./interpreter";
 import { serve } from "./server";
 import * as cheerio from "cheerio";
 
-// Global Marked object with highlight.js support and disabling of indented code blocks.
-const marked = new Marked(
+/** Transforms the given content and returns the transformed result. You can add transformers via {@link Config.transformers}. */
+export type Transformer = (config: Config, context: Context, content: string) => Promise<string>;
+
+/** Markdown transformer which also applies highlight.js to code sections and KaTeX to math sections. */
+export const MarkdownTransformer: Transformer = async (config: Config, context: Context, output: string) => {
+    if (context.inputPath.endsWith(".md")) {
+        output = markedInstance.parse(output) as string;
+        context.outputPath = context.outputPath.substring(0, context.outputPath.length - 3) + ".html";
+    }
+    return output;
+};
+
+// Global Marked object with highlight.js and KaTeX support
+const markedInstance = new Marked(
     markedHighlight({
         langPrefix: "hljs language-",
         highlight(code, lang, info) {
@@ -20,8 +33,7 @@ const marked = new Marked(
     })
 );
 
-marked.use({
-    // Taken and updated from https://github.com/markedjs/marked/issues/1696
+markedInstance.use({
     tokenizer: {
         code(src: string): Tokens.Code | undefined {
             const cap = this.rules.block.code.exec(src);
@@ -39,21 +51,57 @@ marked.use({
                     text: cap[0],
                 } as any;
             }
-        },
-    },
+        }
+    } as any
 });
 
-/** Transforms the given content and returns the transformed result. You can add transformers via {@link Config.transformers}. */
-export type Transformer = (config: Config, context: Context, content: string) => Promise<string>;
-
-/** Markdown transformer which also applies highlight.js to code sections. */
-export const MarkdownTransformer: Transformer = async (config: Config, context: Context, output: string) => {
-    if (context.inputPath.endsWith(".md")) {
-        output = marked.parse(output) as string;
-        context.outputPath = context.outputPath.substring(0, context.outputPath.length - 3) + ".html";
-    }
-    return output;
-};
+markedInstance.use({
+    extensions: [
+        {
+            name: 'inlineMath',
+            level: 'inline',
+            start(src: string) { return src.indexOf('$'); },
+            tokenizer(src: string) {
+                const match = /^\$(.+?)\$/s.exec(src);
+                if (match) {
+                    return {
+                        type: 'inlineMath',
+                        raw: match[0],
+                        text: match[1].trim(),
+                    };
+                }
+                return undefined;
+            },
+            renderer(token: any) {
+                return katex.renderToString(token.text, {
+                    throwOnError: false,
+                });
+            }
+        },
+        {
+            name: 'blockMath',
+            level: 'block',
+            start(src: string) { return src.indexOf('$$'); },
+            tokenizer(src: string) {
+                const match = /^\$\$(.+?)\$\$/s.exec(src);
+                if (match) {
+                    return {
+                        type: 'blockMath',
+                        raw: match[0],
+                        text: match[1].trim(),
+                    };
+                }
+                return undefined;
+            },
+            renderer(token: any) {
+                return katex.renderToString(token.text, {
+                    throwOnError: false,
+                    displayMode: true,
+                });
+            }
+        }
+    ]
+});
 
 /** Table of contents transformer which will:
  * - Search for %%toc%% in .html output files

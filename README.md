@@ -56,7 +56,13 @@ This is equivalent to the command line shown in the last section. Deriving from 
 
 Transformations are applied to a fixed set of file types. By default, `.md`, `.html`, `.css`, and `.js` are transformed. Files of other types will be copied to the output directory verbatim.
 
-By default, `.md` files are transformed to `.html` files via [Marked](https://marked.js.org/). Code blocks inside `.md` files are converted to HTML via [highlight.js](https://highlightjs.org/).
+By default, `.md` files are transformed to `.html` files via [Marked](https://marked.js.org/).
+
+Code blocks inside `.md` files are converted to HTML via [highlight.js](https://highlightjs.org/).
+
+Inline blocks inside `.md` files between two `$` characters, and blocks between two `$$` strings are rendered via [Katex](https://www.npmjs.com/package/katex).
+
+You must include CSS styles for highlight.js and Katex yourself. The renderer will only set the respective class names on the rendered HTML elements.
 
 > **Note**: indented code blocks are disabled in `blargh`'s Markdown support. Always use [fenced code blocks](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks#fenced-code-blocks).
 
