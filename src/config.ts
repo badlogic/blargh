@@ -37,6 +37,6 @@ export const defaultConfig: Config = {
     openTag: "<%",
     closeTag: "%>",
     transformedExtensions: [".html", ".md", ".css", ".js"],
-    transformers: [MarkdownTransformer, TableOfContentTransformer, TargetBlankTransformer],
+    transformers: [MarkdownTransformer, TableOfContentTransformer],
     contextExtenders: [DefaultContextExtender],
 };

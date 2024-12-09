@@ -84,7 +84,7 @@ try {
     let config = parseArgs();
     blargh(config);
 } catch (e) {
-    console.error("Error: " + (e as any).message ?? e);
+    console.error("Error: ", e);
     console.log();
     printHelp();
 }
